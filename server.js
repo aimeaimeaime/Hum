@@ -178,58 +178,65 @@
 
 
 
-const express = require("express");
-const bodyParser = require("body-parser");
-const admin = require("firebase-admin");
-const cors = require("cors");
+
+
+
+
+
+
+
+
+const express = require('express');
+const path = require('path');
+const admin = require('firebase-admin');
+require('dotenv').config();  // pour charger les variables d'environnement
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const PORT = process.env.PORT || 3000;
 
-// Charger les credentials depuis une variable d'environnement
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-
+// Initialisation de Firebase Admin avec la clé d'authentification
+const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);  // Charge la clé depuis la variable d'environnement
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
 });
 
-// Liste des tokens enregistrés (en production, utiliser une base de données)
-let tokens = [];
-
-// Enregistrement d'un nouveau token (quand l'utilisateur s'abonne)
-app.post("/register", (req, res) => {
-  const { token } = req.body;
-  if (token && !tokens.includes(token)) {
-    tokens.push(token);
-    console.log("Token enregistré :", token);
-  }
-  res.status(200).send("Token enregistré avec succès !");
+// Route de test pour vérifier que le serveur fonctionne
+app.get('/', (req, res) => {
+  res.send('Serveur opérationnel !');
 });
 
-// Envoi d’une notification à tous les tokens enregistrés
-app.post("/send", (req, res) => {
+// Exemple de route POST pour envoyer des notifications
+app.post('/send-notification', (req, res) => {
   const message = {
     notification: {
-      title: "Notification depuis le serveur",
-      body: "Ceci est une notification test envoyée depuis server.js"
+      title: 'Test Notification',
+      body: 'Ceci est un test.',
     },
-    tokens: tokens
+    token: 'TOKEN_D_UTILISATEUR',  // Remplacez cela par le token FCM d'un utilisateur
   };
 
-  admin.messaging().sendMulticast(message)
-    .then(response => {
-      console.log("Notifications envoyées :", response.successCount);
-      res.status(200).send(`Notifications envoyées : ${response.successCount}`);
+  admin
+    .messaging()
+    .send(message)
+    .then((response) => {
+      console.log('Notification envoyée avec succès:', response);
+      res.status(200).send('Notification envoyée!');
     })
-    .catch(error => {
-      console.error("Erreur d'envoi :", error);
-      res.status(500).send("Erreur lors de l'envoi des notifications.");
+    .catch((error) => {
+      console.error('Erreur lors de l\'envoi de la notification:', error);
+      res.status(500).send('Erreur lors de l\'envoi de la notification');
     });
 });
 
-// Démarrer le serveur
-const PORT = process.env.PORT || 3000;
+// Servir tous les fichiers à la racine du projet (comme index.html, etc.)
+app.use(express.static(path.join(__dirname)));
+
+// Si l'application a un front-end (par exemple React ou autre), envoyer index.html pour les autres routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));  // Si vous avez un fichier index.html
+});
+
+// Démarrage du serveur
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
 });
