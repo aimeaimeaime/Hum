@@ -192,7 +192,8 @@ const cors = require('cors');
 const path = require('path');
 
 // 🔐 Charge le fichier JSON (ne jamais le push sur GitHub)
-const serviceAccount = require('./firebase-key.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
