@@ -9,8 +9,8 @@
   <button id="subscribe">S'abonner</button>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-<script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
       authDomain: "my-noti-16c94.firebaseapp.com",
@@ -19,16 +19,16 @@
       messagingSenderId: "1062983320683",
       appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
     };
-  
+
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
-  
+
     navigator.serviceWorker.register('/firebase-messaging-sw.js')
       .then(swReg => {
         console.log('Service Worker enregistré', swReg);
-  
+
         messaging.useServiceWorker(swReg);
-  
+
         document.getElementById('subscribe').addEventListener('click', async () => {
           try {
             const permission = await Notification.requestPermission();
@@ -36,13 +36,13 @@
               alert('Permission refusée');
               return;
             }
-  
+
             const token = await messaging.getToken({
               vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
             });
-  
+
             console.log('Token reçu :', token);
-  
+
             const payload = {
               endpoint: token,
               expirationTime: null,
@@ -51,13 +51,14 @@
                 auth: ''
               }
             };
-  
+
+            // ✅ Appelle la bonne route backend ici
             await fetch('https://noti-7m4m.onrender.com/subscribe', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
             });
-  
+
             alert('Abonné avec succès');
           } catch (e) {
             console.error('Erreur abonnement :', e);
@@ -68,5 +69,5 @@
         console.error('Erreur enregistrement service worker', error);
       });
   </script>
-  </body>
+</body>
 </html>
