@@ -1,47 +1,59 @@
-// ===== server.js =====
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const mysql = require('mysql2');
-const dotenv = require('dotenv');
-dotenv.config();
-
+const bodyParser = require('body-parser');
 const app = express();
+const port = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
 
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT
+// Connexion à la base de données distante
+const db = mysql.createConnection({
+  host: 'sql7.freesqldatabase.com',
+  user: 'sql7776142',
+  password: 'etSxEQTvi1',
+  database: 'sql7776142',
+  port: 3306
 });
 
-connection.connect((err) => {
-    if (err) throw err;
-    console.log('Connecté à la base de données MySQL');
+db.connect(err => {
+  if (err) {
+    console.error('Erreur de connexion à la base de données:', err);
+    return;
+  }
+  console.log('Connecté à la base de données');
 });
 
-// Route pour enregistrer un abonné
+// Route pour recevoir les abonnements
 app.post('/subscribe', (req, res) => {
-    const { endpoint, expirationTime, keys } = req.body;
-    const { p256dh, auth } = keys;
+  const { endpoint, expirationTime, keys } = req.body;
 
-    connection.query(
-        'INSERT INTO subcriptions (endpointIndex, expirationTime, p256dh, auth) VALUES (?, ?, ?, ?)',
-        [endpoint, expirationTime, p256dh, auth],
-        (err, result) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send('Erreur lors de l\'enregistrement');
-            }
-            res.status(200).send('Abonnement enregistré');
-        }
-    );
+  if (!endpoint) {
+    return res.status(400).send('Données manquantes');
+  }
+
+  const query = `
+    INSERT INTO subcriptions (endpointIndex, expirationTime, p256dh, auth)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(query, [
+    endpoint,
+    expirationTime || '',
+    keys?.p256dh || '',
+    keys?.auth || ''
+  ], (err, result) => {
+    if (err) {
+      console.error('Erreur lors de l’insertion:', err);
+      return res.status(500).send('Erreur serveur');
+    }
+
+    res.status(201).send('Abonnement enregistré');
+  });
 });
 
-// Démarre le serveur
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Serveur en ligne sur le port ${PORT}`));
+// Démarrage du serveur
+app.listen(port, () => {
+  console.log(`Serveur en ligne sur le port ${port}`);
+});
