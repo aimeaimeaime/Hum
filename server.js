@@ -1,14 +1,17 @@
+
+
+
+
+
 // const express = require('express');
 // const mysql = require('mysql2');
 // const cors = require('cors');
 
 // const app = express();
-// const PORT = process.env.PORT || 3000;
-
 // app.use(cors());
 // app.use(express.json());
 
-// // Connexion à ta base de données distante
+// // Connexion à ta base de données freesqldatabase.com
 // const db = mysql.createConnection({
 //   host: 'sql7.freesqldatabase.com',
 //   user: 'sql7776142',
@@ -17,45 +20,41 @@
 //   port: 3306
 // });
 
-// db.connect(err => {
-//   if (err) {
-//     console.error('Erreur de connexion à la base de données :', err);
-//   } else {
-//     console.log('Connecté à la base de données MySQL distante.');
-//   }
+// // Route de test
+// app.get('/', (req, res) => {
+//   res.send('Serveur Node + MySQL opérationnel');
 // });
 
-// // Endpoint pour enregistrer un abonnement
+// // Route d’abonnement – enregistre le token dans `push_tokens`
 // app.post('/subscribe', (req, res) => {
-//   const { endpoint, expirationTime, keys } = req.body;
+//   const { token } = req.body;
 
-//   if (!endpoint) {
-//     return res.status(400).send("Champ 'endpoint' manquant.");
+//   if (!token) {
+//     return res.status(400).json({ message: 'Token manquant' });
 //   }
 
-//   const { p256dh, auth } = keys || {};
+//   const sql = 'INSERT INTO push_tokens (token) VALUES (?)';
 
-//   const sql = `
-//     INSERT INTO subcriptions (endpointIndex, expirationTime, p256dh, auth)
-//     VALUES (?, ?, ?, ?)
-//   `;
-
-//   db.query(sql, [endpoint, expirationTime, p256dh, auth], (err, result) => {
+//   db.query(sql, [token], (err, results) => {
 //     if (err) {
-//       console.error('Erreur MySQL :', err);
-//       return res.status(500).send("Erreur lors de l'insertion");
+//       console.error('Erreur lors de l\'insertion :', err);
+//       return res.status(500).json({ message: 'Erreur lors de l\'insertion en base' });
 //     }
-//     res.status(201).send('Abonnement enregistré avec succès');
+
+//     return res.status(200).json({ message: 'Token enregistré avec succès' });
 //   });
 // });
 
-// app.get('/', (req, res) => {
-//   res.send('Serveur Node opérationnel');
+// // Lancer le serveur
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//   console.log(`Serveur lancé sur le port ${PORT}`);
 // });
 
-// app.listen(PORT, () => {
-//   console.log(`Serveur en cours d'exécution sur le port ${PORT}`);
-// });
+
+
+
+
 
 
 
@@ -69,14 +68,19 @@
 
 
 const express = require('express');
+const bodyParser = require('body-parser');
 const mysql = require('mysql2');
+const admin = require('firebase-admin');
 const cors = require('cors');
-
+const path = require('path');
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// Connexion à ta base de données freesqldatabase.com
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Connexion à la base de données
 const db = mysql.createConnection({
   host: 'sql7.freesqldatabase.com',
   user: 'sql7776142',
@@ -85,33 +89,79 @@ const db = mysql.createConnection({
   port: 3306
 });
 
-// Route de test
-app.get('/', (req, res) => {
-  res.send('Serveur Node + MySQL opérationnel');
+db.connect(err => {
+  if (err) {
+    console.error('Erreur connexion DB :', err);
+  } else {
+    console.log('Connexion DB réussie');
+  }
 });
 
-// Route d’abonnement – enregistre le token dans `push_tokens`
+// Firebase Admin SDK
+const serviceAccount = require('./service-account.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+// Route test
+app.get('/', (req, res) => {
+  res.send('Serveur Node opérationnel');
+});
+
+// Route d’abonnement (enregistrement token)
 app.post('/subscribe', (req, res) => {
-  const { token } = req.body;
+  const token = req.body.token;
 
   if (!token) {
-    return res.status(400).json({ message: 'Token manquant' });
+    return res.status(400).send('Token manquant');
   }
 
   const sql = 'INSERT INTO push_tokens (token) VALUES (?)';
 
-  db.query(sql, [token], (err, results) => {
+  db.query(sql, [token], (err, result) => {
     if (err) {
-      console.error('Erreur lors de l\'insertion :', err);
-      return res.status(500).json({ message: 'Erreur lors de l\'insertion en base' });
+      console.error('Erreur insertion token :', err);
+      return res.status(500).send("Erreur lors de l'insertion");
     }
 
-    return res.status(200).json({ message: 'Token enregistré avec succès' });
+    console.log('Token enregistré');
+    res.send('Abonnement enregistré avec succès');
+  });
+});
+
+// Route d’envoi de notification
+app.post('/send', async (req, res) => {
+  const { title, body } = req.body;
+
+  db.query('SELECT token FROM push_tokens', async (err, results) => {
+    if (err) {
+      console.error('Erreur récupération tokens :', err);
+      return res.status(500).send('Erreur récupération des tokens');
+    }
+
+    const tokens = results.map(row => row.token);
+
+    const message = {
+      notification: {
+        title: title || 'Notification',
+        body: body || 'Contenu par défaut'
+      },
+      tokens
+    };
+
+    try {
+      const response = await admin.messaging().sendMulticast(message);
+      console.log(`${response.successCount} notifications envoyées`);
+      res.send(`Notifications envoyées : ${response.successCount}`);
+    } catch (e) {
+      console.error('Erreur envoi FCM :', e);
+      res.status(500).send('Erreur envoi notifications');
+    }
   });
 });
 
 // Lancer le serveur
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Serveur lancé sur le port ${PORT}`);
 });
