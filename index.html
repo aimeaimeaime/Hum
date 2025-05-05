@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Notification FCM</title>
+  <title>Notification Test</title>
 </head>
 <body>
   <h2>Activer les notifications</h2>
@@ -24,49 +24,32 @@
     const messaging = firebase.messaging();
 
     navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(swReg => {
-        console.log('Service Worker enregistré', swReg);
+      .then(function(registration) {
+        console.log('Service Worker enregistré !');
 
-        messaging.useServiceWorker(swReg);
+        messaging.useServiceWorker(registration);
 
         document.getElementById('subscribe').addEventListener('click', async () => {
-          try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-              alert('Permission refusée');
-              return;
-            }
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+            alert('Notifications refusées');
+            return;
+          }
 
+          try {
             const token = await messaging.getToken({
               vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
             });
 
-            console.log('Token reçu :', token);
-
-            const payload = {
-              endpoint: token,
-              expirationTime: null,
-              keys: {
-                p256dh: '',
-                auth: ''
-              }
-            };
-
-            // ✅ Appelle la bonne route backend ici
-            await fetch('https://noti-7m4m.onrender.com/subscribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload)
-            });
-
-            alert('Abonné avec succès');
-          } catch (e) {
-            console.error('Erreur abonnement :', e);
+            console.log('Token généré : ', token);
+            alert('Token : ' + token);
+          } catch (err) {
+            console.error('Erreur lors du getToken', err);
           }
         });
       })
       .catch(error => {
-        console.error('Erreur enregistrement service worker', error);
+        console.error('Erreur Service Worker :', error);
       });
   </script>
 </body>
