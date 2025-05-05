@@ -185,58 +185,53 @@
 
 
 
-
 const express = require('express');
-const path = require('path');
 const admin = require('firebase-admin');
-require('dotenv').config();  // pour charger les variables d'environnement
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
+
+// 🔐 Charge le fichier JSON (ne jamais le push sur GitHub)
+const serviceAccount = require('./firebase-key.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Initialisation de Firebase Admin avec la clé d'authentification
-const serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_KEY);  // Charge la clé depuis la variable d'environnement
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+app.use(cors());
+app.use(bodyParser.json());
 
-// Route de test pour vérifier que le serveur fonctionne
+// 👉 Page test GET
 app.get('/', (req, res) => {
-  res.send('Serveur opérationnel !');
+  res.send('FCM Server is running');
 });
 
-// Exemple de route POST pour envoyer des notifications
-app.post('/send-notification', (req, res) => {
-  const message = {
-    notification: {
-      title: 'Test Notification',
-      body: 'Ceci est un test.',
-    },
-    token: 'TOKEN_D_UTILISATEUR',  // Remplacez cela par le token FCM d'un utilisateur
-  };
+// 👉 Envoi d’une notification POST
+app.post('/send', async (req, res) => {
+  const { token, title, body } = req.body;
 
-  admin
-    .messaging()
-    .send(message)
-    .then((response) => {
-      console.log('Notification envoyée avec succès:', response);
-      res.status(200).send('Notification envoyée!');
-    })
-    .catch((error) => {
-      console.error('Erreur lors de l\'envoi de la notification:', error);
-      res.status(500).send('Erreur lors de l\'envoi de la notification');
+  if (!token || !title || !body) {
+    return res.status(400).json({ error: 'token, title, and body are required' });
+  }
+
+  try {
+    await admin.messaging().send({
+      token,
+      notification: {
+        title,
+        body
+      }
     });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Error sending message:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Servir tous les fichiers à la racine du projet (comme index.html, etc.)
-app.use(express.static(path.join(__dirname)));
-
-// Si l'application a un front-end (par exemple React ou autre), envoyer index.html pour les autres routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));  // Si vous avez un fichier index.html
-});
-
-// Démarrage du serveur
-app.listen(PORT, () => {
-  console.log(`Serveur démarré sur le port ${PORT}`);
+app.listen(port, () => {
+  console.log(`🚀 Server is running on port ${port}`);
 });
