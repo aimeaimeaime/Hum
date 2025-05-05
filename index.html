@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -42,6 +42,122 @@
 
             console.log('Token reçu :', token);
             alert('Token : ' + token);
+          } catch (e) {
+            console.error('Erreur abonnement :', e);
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Erreur enregistrement service worker', error);
+      });
+  </script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Notification FCM</title>
+</head>
+<body>
+  <h2>Activer les notifications</h2>
+  <button id="subscribe">S'abonner</button>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
+      authDomain: "my-noti-16c94.firebaseapp.com",
+      projectId: "my-noti-16c94",
+      storageBucket: "my-noti-16c94.appspot.com",
+      messagingSenderId: "1062983320683",
+      appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+
+    // Enregistrer le service worker
+    navigator.serviceWorker.register('firebase-messaging-sw.js')
+      .then(swReg => {
+        console.log('Service Worker enregistré', swReg);
+        messaging.useServiceWorker(swReg);
+
+        // Ajouter l'événement du bouton
+        document.getElementById('subscribe').addEventListener('click', async () => {
+          try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+              alert('Permission refusée');
+              return;
+            }
+
+            // Récupérer le token FCM
+            const token = await messaging.getToken({
+              vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
+            });
+
+            console.log('Token reçu :', token);
+            alert('Token : ' + token);
+
+            // Envoi du token au backend (Render) pour l'enregistrer dans la base de données
+            const payload = {
+              endpoint: token,
+              expirationTime: null, // optionnel
+              keys: {
+                p256dh: '',
+                auth: ''
+              }
+            };
+
+            // Envoi de la requête POST vers ton backend Render
+            await fetch('https://hum-l6jf.onrender.com/subscribe', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payload)
+            });
+
+            alert('Abonnement enregistré avec succès!');
           } catch (e) {
             console.error('Erreur abonnement :', e);
           }
