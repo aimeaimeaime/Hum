@@ -91,15 +91,19 @@
 
 
 
+
+
+// Importation des modules nécessaires
 const express = require('express');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const mysql = require('mysql');
 const path = require('path');
 
+// Initialisation de l'application express
 const app = express();
 
-// Configuration Firebase Admin
+// Configuration de Firebase Admin SDK
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -116,7 +120,7 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    console.error('Erreur de connexion à MySQL :', err);
+    console.error('Erreur de connexion MySQL :', err);
   } else {
     console.log('Connecté à MySQL');
   }
@@ -124,13 +128,14 @@ db.connect((err) => {
 
 // Middleware
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname))); // Sert les fichiers comme firebase-messaging-sw.js
+app.use(express.static(path.join(__dirname))); // Sert index.html et firebase-messaging-sw.js
 
-// Routes
+// Route racine (sert index.html)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Enregistrement du token push
 app.post('/register-token', (req, res) => {
   const { token } = req.body;
 
@@ -139,17 +144,17 @@ app.post('/register-token', (req, res) => {
   }
 
   const query = 'INSERT INTO push_tokens (token) VALUES (?)';
-  db.query(query, [token], (err) => {
+  db.query(query, [token], (err, result) => {
     if (err) {
-      console.error('Erreur insertion token :', err);
-      return res.status(500).send('Erreur d\'enregistrement du token');
+      console.error("Erreur d'insertion:", err);
+      return res.status(500).send("Erreur lors de l'enregistrement du token");
     }
-    return res.status(200).send('Token enregistré');
+    res.status(200).send('Token enregistré avec succès');
   });
 });
 
-// Lancement serveur
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Serveur en ligne sur le port ${port}`);
+// Lancer le serveur
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Serveur en ligne sur le port ${PORT}`);
 });
