@@ -78,24 +78,24 @@
 
 
 
-
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Connexion à la base de données distante
+// Connexion à la base de données
 const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'sql7.freesqldatabase.com',
-  user: process.env.DB_USER || 'sql7776142',
-  password: process.env.DB_PASSWORD || 'etSxEQTvi1',
-  database: process.env.DB_NAME || 'sql7776142',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306
 });
 
@@ -107,18 +107,14 @@ db.connect(err => {
   console.log('Connecté à la base de données');
 });
 
-// Initialisation Firebase Admin SDK avec la clé d'environnement Render
-try {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-  console.log("Firebase Admin SDK initialisé");
-} catch (error) {
-  console.error("Erreur d'initialisation Firebase Admin SDK:", error);
-}
+// Initialiser Firebase Admin avec la clé JSON depuis Render
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
 
-// Route pour recevoir les abonnements
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Route pour enregistrer un token
 app.post('/subscribe', (req, res) => {
   const { token } = req.body;
 
@@ -126,9 +122,7 @@ app.post('/subscribe', (req, res) => {
     return res.status(400).send('Token manquant');
   }
 
-  const query = 'INSERT INTO subscriptions (token) VALUES (?)';
-
-  db.query(query, [token], (err, result) => {
+  db.query('INSERT INTO tokens (token) VALUES (?) ON DUPLICATE KEY UPDATE token = token', [token], (err, result) => {
     if (err) {
       console.error('Erreur lors de l’insertion:', err);
       return res.status(500).send('Erreur serveur');
@@ -142,36 +136,44 @@ app.post('/subscribe', (req, res) => {
 app.post('/send-notification', (req, res) => {
   const { title, body } = req.body;
 
-  const query = 'SELECT token FROM subscriptions';
-
-  db.query(query, async (err, results) => {
+  db.query('SELECT token FROM tokens', async (err, results) => {
     if (err) {
-      console.error('Erreur lors de la récupération des tokens:', err);
-      return res.status(500).send('Erreur serveur');
+      console.error('Erreur lors de la lecture des tokens:', err);
+      return res.status(500).send('Erreur de lecture des tokens');
     }
 
-    const tokens = results.map(row => row.token);
+    const tokens = results.map(r => r.token);
+    if (tokens.length === 0) return res.status(200).send('Aucun token enregistré');
 
     const message = {
-      notification: {
-        title: title || 'Titre par défaut',
-        body: body || 'Corps du message par défaut'
-      },
-      tokens: tokens
+      notification: { title, body },
+      tokens,
     };
 
     try {
       const response = await admin.messaging().sendMulticast(message);
-      console.log('Notifications envoyées:', response);
-      res.status(200).json({ success: true, result: response });
+      res.status(200).json({
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        responses: response.responses
+      });
     } catch (error) {
-      console.error("Erreur lors de l'envoi des notifications:", error);
-      res.status(500).send('Erreur lors de l’envoi des notifications');
+      console.error('Erreur lors de l’envoi de la notification:', error);
+      res.status(500).send('Erreur d’envoi');
     }
   });
 });
 
-// Démarrage du serveur
+// (Optionnel) Route pour lister les tokens
+app.get('/tokens', (req, res) => {
+  db.query('SELECT * FROM tokens', (err, results) => {
+    if (err) {
+      return res.status(500).send('Erreur');
+    }
+    res.json(results);
+  });
+});
+
 app.listen(port, () => {
   console.log(`Serveur en ligne sur le port ${port}`);
 });
