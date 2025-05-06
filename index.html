@@ -103,20 +103,21 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+
+  <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Notifications Push Firebase</title>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+
 
   <style>
     html, body {
@@ -132,6 +133,7 @@
       flex-direction: column;
     }
 
+    /* Animation d'onde */
     .wave {
       position: absolute;
       width: 200%;
@@ -154,7 +156,7 @@
       pointer-events: none;
     }
 
-    #subscribe {
+    #subscribeBtn {
       z-index: 2;
       padding: 15px 30px;
       font-size: 18px;
@@ -168,7 +170,7 @@
       animation: pulse 1s infinite;
     }
 
-    #subscribe:hover {
+    #subscribeBtn:hover {
       transform: scale(1.05);
       background: linear-gradient(45deg, #43A047, #66BB6A);
     }
@@ -179,24 +181,28 @@
       100% { transform: scale(1); }
     }
 
-    h1 {
+    h4 {
       z-index: 2;
       color: #fff;
       margin-bottom: 20px;
       text-shadow: 0 0 10px #0ff;
     }
   </style>
+
 </head>
 <body>
-
   <div class="wave"></div>
   <canvas id="stars"></canvas>
 
-  <h1>Notifications Push</h1>
-  <button id="subscribe">S’abonner aux notifications</button>
+  <h4>🔔 Activate Biblical Notifications !🔔</h4>
+  <button id="subscribeBtn">I subscribe !</button>
 
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script>
-    // Animation confettis
+    // Confettis continus
     setInterval(() => {
       confetti({
         particleCount: 4,
@@ -209,10 +215,8 @@
         colors: ['#0ff', '#fff', '#f0f', '#00f']
       });
     }, 350);
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script>
-    // Étoiles
+
+    // Particules étoiles
     const canvas = document.getElementById('stars');
     const ctx = canvas.getContext('2d');
     let stars = [];
@@ -266,8 +270,30 @@
     });
   </script>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   <script>
-    // Firebase Config
+    // Configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
       authDomain: "my-noti-16c94.firebaseapp.com",
@@ -280,6 +306,7 @@
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
+    // Enregistre le Service Worker
     navigator.serviceWorker.register('firebase-messaging-sw.js')
       .then((registration) => {
         messaging.useServiceWorker(registration);
@@ -304,6 +331,7 @@
         if (currentToken) {
           console.log('Token récupéré:', currentToken);
 
+          // Envoie du token au serveur
           const response = await fetch('/register-token', {
             method: 'POST',
             headers: {
@@ -323,8 +351,7 @@
       }
     }
 
-    document.getElementById('subscribe').onclick = requestPermission;
+    document.getElementById('subscribeBtn').onclick = requestPermission;
   </script>
-
 </body>
 </html>
