@@ -91,24 +91,21 @@
 
 
 
-
-// Importation des modules nécessaires
 const express = require('express');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const mysql = require('mysql');
 const path = require('path');
 
-// Initialisation de l'application express
 const app = express();
 
-// Configuration de Firebase Admin SDK
+// Configuration Firebase Admin
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Configuration de la connexion à la base de données MySQL
+// Connexion MySQL
 const db = mysql.createConnection({
   host: 'sql7.freesqldatabase.com',
   user: 'sql7776142',
@@ -119,41 +116,39 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    console.error('Erreur de connexion à la base de données:', err);
+    console.error('Erreur de connexion à MySQL :', err);
   } else {
-    console.log('Connecté à la base de données MySQL');
+    console.log('Connecté à MySQL');
   }
 });
 
-// Middleware pour gérer le body des requêtes en JSON
+// Middleware
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname))); // Sert les fichiers comme firebase-messaging-sw.js
 
-// Route pour afficher le fichier HTML
+// Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Route pour enregistrer le token dans la base de données
 app.post('/register-token', (req, res) => {
   const { token } = req.body;
 
-  // Vérifie si le token est valide
   if (!token) {
     return res.status(400).send('Token manquant');
   }
 
-  // Insertion du token dans la base de données
   const query = 'INSERT INTO push_tokens (token) VALUES (?)';
-  db.query(query, [token], (err, result) => {
+  db.query(query, [token], (err) => {
     if (err) {
-      console.error('Erreur d\'insertion dans la base de données:', err);
+      console.error('Erreur insertion token :', err);
       return res.status(500).send('Erreur d\'enregistrement du token');
     }
     return res.status(200).send('Token enregistré');
   });
 });
 
-// Lancer le serveur
+// Lancement serveur
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Serveur en ligne sur le port ${port}`);

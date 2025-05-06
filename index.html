@@ -74,23 +74,20 @@
 
 
 
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Notification Push</title>
-</head>
-<body>
-  <h1>Abonnement aux notifications push</h1>
-  <button id="subscribeButton">S'abonner aux notifications</button>
-
-  <!-- Firebase SDKs -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abonnement aux notifications push</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
+</head>
+<body>
+  <h1>Notification Push</h1>
+  <button onclick="requestPermission()">S'abonner aux notifications</button>
 
   <script>
-    // ✅ Configuration Firebase avec TES infos
     const firebaseConfig = {
       apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
       authDomain: "my-noti-16c94.firebaseapp.com",
@@ -100,49 +97,37 @@
       appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
     };
 
-    // Initialisation Firebase
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    const subscribeButton = document.getElementById('subscribeButton');
-
-    // Fonction pour demander la permission de recevoir les notifications
     async function requestPermission() {
       try {
-        await Notification.requestPermission();
-        const token = await messaging.getToken({
-          vapidKey: 'YOUR_PUBLIC_VAPID_KEY_HERE' // 🔴 Remplace si nécessaire (voir note ci-dessous)
-        });
+        const status = await Notification.requestPermission();
+        if (status === 'granted') {
+          const currentToken = await messaging.getToken({
+            vapidKey: 'BLA_BLA_TON_VAPID_PUBLIC_KEY_SI_TU_EN_AS_UN' // Tu peux enlever si non utilisé
+          });
+          console.log("Token reçu :", currentToken);
 
-        if (!token) {
-          alert('Impossible d\'obtenir le token');
-          return;
-        }
+          const response = await fetch('/register-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: currentToken })
+          });
 
-        console.log('Token reçu :', token);
-
-        // Envoi du token à ton serveur
-        const response = await fetch('/register-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ token })
-        });
-
-        if (response.ok) {
-          alert('Token enregistré avec succès !');
+          if (response.ok) {
+            alert("Token enregistré !");
+          } else {
+            alert("Erreur lors de l'enregistrement du token.");
+          }
         } else {
-          alert('Erreur lors de l\'enregistrement du token.');
+          alert('Permission refusée.');
         }
-
       } catch (err) {
         console.error('Erreur lors de l\'inscription aux notifications:', err);
-        alert('Erreur lors de la demande de permission.');
+        alert('Erreur lors de l\'enregistrement du token');
       }
     }
-
-    subscribeButton.addEventListener('click', requestPermission);
   </script>
 </body>
 </html>
