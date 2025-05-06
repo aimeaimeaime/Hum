@@ -3,7 +3,7 @@
 
 
 
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -56,6 +56,239 @@
           console.log('Token récupéré:', currentToken);
 
           // Envoie du token au serveur
+          const response = await fetch('/register-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: currentToken }),
+          });
+
+          const result = await response.text();
+          alert(result);
+        } else {
+          console.warn('Aucun token généré');
+        }
+      } catch (err) {
+        console.error('Erreur lors de l\'inscription aux notifications:', err);
+        alert('Erreur lors de l\'enregistrement du token');
+      }
+    }
+
+    document.getElementById('subscribe').onclick = requestPermission;
+  </script>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notifications Push Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: radial-gradient(ellipse at center, #0d0d1a 0%, #000000 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .wave {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: repeating-radial-gradient(circle, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 3px, transparent 10px);
+      animation: rotate 60s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #subscribe {
+      z-index: 2;
+      padding: 15px 30px;
+      font-size: 18px;
+      color: white;
+      background: linear-gradient(45deg, #4CAF50, #81C784);
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+      animation: pulse 1s infinite;
+    }
+
+    #subscribe:hover {
+      transform: scale(1.05);
+      background: linear-gradient(45deg, #43A047, #66BB6A);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    h4 {
+      z-index: 2;
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #0ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="wave"></div>
+  <canvas id="stars"></canvas>
+
+  <h4>🔔 Active les notifications bibliques ! 🔔</h4>
+  <button id="subscribe">S’abonner aux notifications</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    // Confettis continus
+    setInterval(() => {
+      confetti({
+        particleCount: 4,
+        angle: 60 + Math.random() * 60,
+        spread: 55,
+        origin: {
+          x: Math.random(),
+          y: Math.random() * 0.6
+        },
+        colors: ['#0ff', '#fff', '#f0f', '#00f']
+      });
+    }, 350);
+
+    // Particules étoiles
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function createStars(count) {
+      stars = [];
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.5,
+          d: Math.random() * 0.5 + 0.2
+        });
+      }
+    }
+
+    function animateStars() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.beginPath();
+      stars.forEach(star => {
+        ctx.moveTo(star.x, star.y);
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      });
+      ctx.fill();
+      updateStars();
+      requestAnimationFrame(animateStars);
+    }
+
+    function updateStars() {
+      stars.forEach(star => {
+        star.y += star.d;
+        if (star.y > canvas.height) {
+          star.y = 0;
+          star.x = Math.random() * canvas.width;
+        }
+      });
+    }
+
+    resize();
+    createStars(150);
+    animateStars();
+    window.addEventListener("resize", () => {
+      resize();
+      createStars(150);
+    });
+  </script>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
+      authDomain: "my-noti-16c94.firebaseapp.com",
+      projectId: "my-noti-16c94",
+      storageBucket: "my-noti-16c94.appspot.com",
+      messagingSenderId: "1062983320683",
+      appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+
+    navigator.serviceWorker.register('firebase-messaging-sw.js')
+      .then((registration) => {
+        messaging.useServiceWorker(registration);
+        console.log('Service Worker enregistré');
+      })
+      .catch((err) => {
+        console.error('Erreur Service Worker :', err);
+      });
+
+    async function requestPermission() {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert('Permission refusée');
+          return;
+        }
+
+        const currentToken = await messaging.getToken({
+          vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
+        });
+
+        if (currentToken) {
+          console.log('Token récupéré:', currentToken);
+
           const response = await fetch('/register-token', {
             method: 'POST',
             headers: {
