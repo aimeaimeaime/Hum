@@ -186,26 +186,19 @@
 
 
 
-
 const express = require('express');
+const path = require('path');
 const mysql = require('mysql');
 const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
+const serviceAccount = require('./firebase-service-account.json');
 
 const app = express();
 const port = process.env.PORT || 10000;
-
-app.use(express.json());
-
-// 🔐 Initialisation Firebase Admin SDK avec la clé JSON
-const serviceAccount = require('./firebase-service-account.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// 📦 Connexion MySQL
 const db = mysql.createConnection({
   host: 'sql7.freesqldatabase.com',
   user: 'sql7776142',
@@ -215,66 +208,43 @@ const db = mysql.createConnection({
 });
 
 db.connect((err) => {
-  if (err) {
-    console.error('Erreur de connexion à la base de données:', err);
-  } else {
-    console.log('✅ Connecté à la base de données');
-  }
+  if (err) return console.error('Erreur DB:', err);
+  console.log('Connecté à la base de données');
 });
 
-// 🌐 Sert les fichiers statiques (index.html, firebase-messaging-sw.js)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use(express.static('public')); // Pour servir le service worker
+app.use(express.static(__dirname)); // Pour servir index.html
 
-// 💾 Enregistre un token
 app.post('/register-token', (req, res) => {
   const { token } = req.body;
+  if (!token) return res.status(400).send('Token manquant');
 
-  if (!token) {
-    return res.status(400).send('Token manquant');
-  }
-
-  const sql = 'INSERT INTO push_tokens (token) VALUES (?)';
-  db.query(sql, [token], (err, result) => {
-    if (err) {
-      console.error('Erreur lors de l\'insertion du token:', err);
-      return res.status(500).send('Erreur lors de l\'enregistrement du token');
-    }
-    res.status(200).send('Token enregistré avec succès');
+  db.query('INSERT INTO push_tokens (token) VALUES (?)', [token], (err) => {
+    if (err) return res.status(500).send('Erreur d\'enregistrement');
+    res.send('Token enregistré');
   });
 });
 
-// 🚀 Envoie une notification à tous les tokens
 app.post('/send-notification', (req, res) => {
   const { title, body } = req.body;
-
   db.query('SELECT token FROM push_tokens', (err, results) => {
-    if (err) {
-      console.error('Erreur lors de la récupération des tokens:', err);
-      return res.status(500).send('Erreur serveur');
-    }
+    if (err) return res.status(500).send('Erreur DB');
+    const tokens = results.map(r => r.token);
+    if (!tokens.length) return res.status(404).send('Aucun token');
 
-    const tokens = results.map(row => row.token);
-    if (tokens.length === 0) {
-      return res.status(404).send('Aucun token trouvé');
-    }
-
-    const message = {
+    admin.messaging().sendMulticast({
       notification: { title, body },
-      tokens: tokens
-    };
-
-    admin.messaging().sendMulticast(message)
-      .then(response => {
-        res.status(200).send(`✅ Notifications envoyées : ${response.successCount} succès, ${response.failureCount} échecs.`);
-      })
-      .catch(error => {
-        console.error('Erreur d\'envoi:', error);
-        res.status(500).send('Erreur d\'envoi de notification');
-      });
+      tokens
+    }).then(response => {
+      res.send(`Envoyées: ${response.successCount}, Échecs: ${response.failureCount}`);
+    }).catch(err => {
+      console.error('Erreur envoi:', err);
+      res.status(500).send('Erreur envoi');
+    });
   });
 });
 
-// 🎧 Démarrage du serveur
 app.listen(port, () => {
-  console.log(`🚀 Serveur en ligne sur le port ${port}`);
+  console.log(`Serveur démarré sur le port ${port}`);
 });

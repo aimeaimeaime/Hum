@@ -37,8 +37,6 @@
 
 
 
-
-
 importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
@@ -53,23 +51,12 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Affichage des notifications en arrière-plan
 messaging.setBackgroundMessageHandler(function(payload) {
-  console.log('[firebase-messaging-sw.js] Message reçu en arrière-plan : ', payload);
-
-  const notificationTitle = payload.notification?.title || "Notification";
+  const notificationTitle = payload.notification.title;
   const notificationOptions = {
-    body: payload.notification?.body || "Vous avez une nouvelle notification.",
-    icon: payload.notification?.icon || "/icon.png"
+    body: payload.notification.body,
+    icon: '/icon.png'
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
-
-
-
-
-
-
-
-

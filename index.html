@@ -65,23 +65,22 @@
 
 
 
+
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <base href="/Hum/"> <!-- nécessaire pour GitHub Pages -->
   <title>Notification Test</title>
 </head>
 <body>
   <h2>Activer les notifications</h2>
   <button id="subscribe">S'abonner</button>
 
-  <!-- Firebase JS SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-
   <script>
-    // Configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
       authDomain: "my-noti-16c94.firebaseapp.com",
@@ -94,10 +93,10 @@
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    // Enregistrement du Service Worker (chemin relatif)
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')  // ✅
       .then(function(registration) {
         console.log('Service Worker enregistré !');
+
         messaging.useServiceWorker(registration);
 
         document.getElementById('subscribe').addEventListener('click', async () => {
@@ -111,10 +110,18 @@
             const token = await messaging.getToken({
               vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
             });
+
             console.log('Token généré : ', token);
-            alert('Token : ' + token);
+
+            await fetch('/register-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token })
+            });
+
+            alert('Token envoyé au serveur.');
           } catch (err) {
-            console.error('Erreur lors du getToken', err);
+            console.error('Erreur getToken', err);
           }
         });
       })

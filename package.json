@@ -1,17 +1,13 @@
 {
   "name": "push-notification-server",
   "version": "1.0.0",
-  "description": "Serveur Node.js pour gérer les abonnements aux notifications push",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "firebase-admin": "^13.3.0",
-    "mysql": "^2.18.1",
-    "mysql2": "^3.6.0"
+    "firebase-admin": "^11.5.0",
+    "mysql": "^2.18.1"
   }
 }
