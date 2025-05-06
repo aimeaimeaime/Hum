@@ -83,87 +83,88 @@
 
 
 
-
 const express = require('express');
-const mysql = require('mysql');
 const admin = require('firebase-admin');
+const mysql = require('mysql');
 const bodyParser = require('body-parser');
-require('dotenv').config();
+const path = require('path');
 
-const serviceAccount = require('./serviceAccountKey.json'); // ton fichier de clé Firebase
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
+// Initialisation de l'application Express
 const app = express();
-const port = process.env.PORT || 10000;
 
+// Utilisation de body-parser pour analyser les corps de requêtes
 app.use(bodyParser.json());
 
-// Connexion à ta base de données FreeSQLDatabase
+// Initialisation de Firebase Admin SDK
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+// Connexion à la base de données MySQL
 const connection = mysql.createConnection({
   host: process.env.DB_HOST || 'sql7.freesqldatabase.com',
   user: process.env.DB_USER || 'sql7776142',
   password: process.env.DB_PASSWORD || 'etSxEQTvi1',
   database: process.env.DB_NAME || 'sql7776142',
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
 });
 
 connection.connect((err) => {
   if (err) {
-    console.error('❌ Erreur de connexion à la base de données :', err);
-    return;
+    console.error('Erreur de connexion à la base de données:', err.stack);
+  } else {
+    console.log('Connecté à la base de données');
   }
-  console.log('✅ Connecté à la base de données');
 });
 
-// Enregistrer un token dans la table `push_tokens`
-app.post('/save-token', (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).send('Token manquant');
-
-  const query = 'INSERT INTO push_tokens (token) VALUES (?)';
-  connection.query(query, [token], (err) => {
-    if (err) {
-      console.error('Erreur lors de l\'insertion du token :', err);
-      return res.status(500).send('Erreur serveur');
-    }
-    res.send('Token enregistré avec succès');
-  });
+// Route pour tester si le serveur fonctionne
+app.get('/', (req, res) => {
+  res.send('Serveur en ligne');
 });
 
-// Envoyer une notification à tous les tokens
+// Route pour envoyer une notification push à tous les tokens stockés dans la base de données
 app.post('/send-notification', (req, res) => {
-  const { title, body } = req.body;
+  const message = req.body.message; // Récupérer le message à envoyer
 
-  const query = 'SELECT token FROM push_tokens';
-  connection.query(query, async (err, results) => {
+  // Récupérer tous les tokens depuis la base de données
+  connection.query('SELECT token FROM push_tokens', (err, results) => {
     if (err) {
-      console.error('Erreur récupération tokens :', err);
+      console.error('Erreur de récupération des tokens:', err);
       return res.status(500).send('Erreur serveur');
     }
 
-    const tokens = results.map(r => r.token);
+    // Extraire les tokens dans un tableau
+    const tokens = results.map(row => row.token);
+
     if (tokens.length === 0) {
-      return res.status(200).send('Aucun token enregistré');
+      return res.status(404).send('Aucun token trouvé');
     }
 
-    const message = {
-      notification: { title, body },
-      tokens: tokens
+    // Configuration du message de notification
+    const payload = {
+      notification: {
+        title: 'Notification Push',
+        body: message,
+      },
     };
 
-    try {
-      const response = await admin.messaging().sendMulticast(message);
-      res.send(`Notifications envoyées : ${response.successCount} réussies`);
-    } catch (error) {
-      console.error('Erreur envoi :', error);
-      res.status(500).send('Erreur envoi notification');
-    }
+    // Envoyer la notification à tous les tokens
+    admin.messaging().sendToDevice(tokens, payload)
+      .then((response) => {
+        console.log('Notification envoyée:', response);
+        res.status(200).send('Notifications envoyées avec succès');
+      })
+      .catch((error) => {
+        console.error('Erreur lors de l\'envoi de la notification:', error);
+        res.status(500).send('Erreur serveur lors de l\'envoi de la notification');
+      });
   });
 });
 
+// Configurer le port et démarrer le serveur
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
-  console.log(`🚀 Serveur en ligne sur le port ${port}`);
+  console.log(`Serveur en ligne sur le port ${port}`);
 });
