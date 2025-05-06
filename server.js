@@ -83,88 +83,78 @@
 
 
 
+
+
+
+
+
+
+
+
+
+// Importation des modules nécessaires
 const express = require('express');
+const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const mysql = require('mysql');
-const bodyParser = require('body-parser');
 const path = require('path');
 
-// Initialisation de l'application Express
+// Initialisation de l'application express
 const app = express();
 
-// Utilisation de body-parser pour analyser les corps de requêtes
-app.use(bodyParser.json());
-
-// Initialisation de Firebase Admin SDK
+// Configuration de Firebase Admin SDK
 const serviceAccount = require('./serviceAccountKey.json');
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Connexion à la base de données MySQL
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST || 'sql7.freesqldatabase.com',
-  user: process.env.DB_USER || 'sql7776142',
-  password: process.env.DB_PASSWORD || 'etSxEQTvi1',
-  database: process.env.DB_NAME || 'sql7776142',
-  port: process.env.DB_PORT || 3306,
+// Configuration de la connexion à la base de données MySQL
+const db = mysql.createConnection({
+  host: 'sql7.freesqldatabase.com',
+  user: 'sql7776142',
+  password: 'etSxEQTvi1',
+  database: 'sql7776142',
+  port: 3306,
 });
 
-connection.connect((err) => {
+db.connect((err) => {
   if (err) {
-    console.error('Erreur de connexion à la base de données:', err.stack);
+    console.error('Erreur de connexion à la base de données:', err);
   } else {
-    console.log('Connecté à la base de données');
+    console.log('Connecté à la base de données MySQL');
   }
 });
 
-// Route pour tester si le serveur fonctionne
+// Middleware pour gérer le body des requêtes en JSON
+app.use(bodyParser.json());
+
+// Route pour afficher le fichier HTML
 app.get('/', (req, res) => {
-  res.send('Serveur en ligne');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Route pour envoyer une notification push à tous les tokens stockés dans la base de données
-app.post('/send-notification', (req, res) => {
-  const message = req.body.message; // Récupérer le message à envoyer
+// Route pour enregistrer le token dans la base de données
+app.post('/register-token', (req, res) => {
+  const { token } = req.body;
 
-  // Récupérer tous les tokens depuis la base de données
-  connection.query('SELECT token FROM push_tokens', (err, results) => {
+  // Vérifie si le token est valide
+  if (!token) {
+    return res.status(400).send('Token manquant');
+  }
+
+  // Insertion du token dans la base de données
+  const query = 'INSERT INTO push_tokens (token) VALUES (?)';
+  db.query(query, [token], (err, result) => {
     if (err) {
-      console.error('Erreur de récupération des tokens:', err);
-      return res.status(500).send('Erreur serveur');
+      console.error('Erreur d\'insertion dans la base de données:', err);
+      return res.status(500).send('Erreur d\'enregistrement du token');
     }
-
-    // Extraire les tokens dans un tableau
-    const tokens = results.map(row => row.token);
-
-    if (tokens.length === 0) {
-      return res.status(404).send('Aucun token trouvé');
-    }
-
-    // Configuration du message de notification
-    const payload = {
-      notification: {
-        title: 'Notification Push',
-        body: message,
-      },
-    };
-
-    // Envoyer la notification à tous les tokens
-    admin.messaging().sendToDevice(tokens, payload)
-      .then((response) => {
-        console.log('Notification envoyée:', response);
-        res.status(200).send('Notifications envoyées avec succès');
-      })
-      .catch((error) => {
-        console.error('Erreur lors de l\'envoi de la notification:', error);
-        res.status(500).send('Erreur serveur lors de l\'envoi de la notification');
-      });
+    return res.status(200).send('Token enregistré');
   });
 });
 
-// Configurer le port et démarrer le serveur
-const port = process.env.PORT || 10000;
+// Lancer le serveur
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Serveur en ligne sur le port ${port}`);
 });

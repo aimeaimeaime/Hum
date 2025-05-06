@@ -68,66 +68,70 @@
 
 
 
+
+
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Notification Test</title>
-</head>
-<body>
-  <h2>Activer les notifications</h2>
-  <button id="subscribe">S'abonner</button>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abonnement aux notifications push</title>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js"></script>
   <script>
+    // Configuration de Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
-      authDomain: "my-noti-16c94.firebaseapp.com",
-      projectId: "my-noti-16c94",
-      storageBucket: "my-noti-16c94.appspot.com",
-      messagingSenderId: "1062983320683",
-      appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
+      apiKey: 'YOUR_API_KEY',
+      authDomain: 'YOUR_AUTH_DOMAIN',
+      projectId: 'YOUR_PROJECT_ID',
+      storageBucket: 'YOUR_STORAGE_BUCKET',
+      messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+      appId: 'YOUR_APP_ID',
+      measurementId: 'YOUR_MEASUREMENT_ID',
     };
 
+    // Initialisation de Firebase
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')  // ✅
-      .then(function(registration) {
-        console.log('Service Worker enregistré !');
+    // Demander la permission pour les notifications push
+    async function requestPermission() {
+      try {
+        await Notification.requestPermission();
+        if (Notification.permission === 'granted') {
+          // Obtenir le token
+          const token = await messaging.getToken({ vapidKey: 'YOUR_VAPID_KEY' });
+          console.log('Token:', token);
 
-        messaging.useServiceWorker(registration);
-
-        document.getElementById('subscribe').addEventListener('click', async () => {
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-            alert('Notifications refusées');
-            return;
-          }
-
-          try {
-            const token = await messaging.getToken({
-              vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
-            });
-
-            console.log('Token généré : ', token);
-
-            await fetch('/register-token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token })
-            });
-
-            alert('Token envoyé au serveur.');
-          } catch (err) {
-            console.error('Erreur getToken', err);
-          }
-        });
-      })
-      .catch(error => {
-        console.error('Erreur Service Worker :', error);
-      });
+          // Envoyer le token au serveur
+          fetch('/register-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: token }),
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Token enregistré avec succès:', data);
+            alert('Vous êtes maintenant abonné aux notifications!');
+          })
+          .catch(error => {
+            console.error('Erreur lors de l\'enregistrement du token:', error);
+            alert('Échec de l\'enregistrement du token');
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la demande de permission:', error);
+      }
+    }
   </script>
+</head>
+<body>
+  <h1>Abonnement aux notifications push</h1>
+  <p>Cliquez sur le bouton ci-dessous pour vous abonner aux notifications push.</p>
+  <button onclick="requestPermission()">S'abonner</button>
 </body>
 </html>
