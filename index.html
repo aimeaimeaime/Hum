@@ -97,14 +97,27 @@
 
 
 
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Notifications Push Firebase</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+
   <style>
     html, body {
       margin: 0;
@@ -166,7 +179,7 @@
       100% { transform: scale(1); }
     }
 
-    h4 {
+    h1 {
       z-index: 2;
       color: #fff;
       margin-bottom: 20px;
@@ -175,15 +188,15 @@
   </style>
 </head>
 <body>
+
   <div class="wave"></div>
   <canvas id="stars"></canvas>
 
-  <h4>🔔 Active les notifications bibliques ! 🔔</h4>
+  <h1>Notifications Push</h1>
   <button id="subscribe">S’abonner aux notifications</button>
 
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script>
-    // Confettis continus
+    // Animation confettis
     setInterval(() => {
       confetti({
         particleCount: 4,
@@ -196,8 +209,10 @@
         colors: ['#0ff', '#fff', '#f0f', '#00f']
       });
     }, 350);
-
-    // Particules étoiles
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    // Étoiles
     const canvas = document.getElementById('stars');
     const ctx = canvas.getContext('2d');
     let stars = [];
@@ -252,7 +267,7 @@
   </script>
 
   <script>
-    // Firebase config
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
       authDomain: "my-noti-16c94.firebaseapp.com",
@@ -310,5 +325,6 @@
 
     document.getElementById('subscribe').onclick = requestPermission;
   </script>
+
 </body>
 </html>
