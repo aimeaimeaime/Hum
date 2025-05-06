@@ -1,14 +1,15 @@
+// Import des modules nécessaires
 const admin = require('firebase-admin');
 const mysql = require('mysql');
 
-// Initialise Firebase Admin
+// Initialisation de Firebase Admin avec le bon fichier de clé
 const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Connexion MySQL
+// Connexion à la base de données MySQL
 const db = mysql.createConnection({
   host: 'sql7.freesqldatabase.com',
   user: 'sql7776142',
@@ -19,36 +20,51 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
   if (err) {
-    console.error('Erreur MySQL:', err);
+    console.error('Erreur de connexion à la base de données:', err);
     return;
   }
 
-  // Récupère tous les tokens
+  console.log('Connecté à la base de données');
+
+  // Récupérer tous les tokens enregistrés
   db.query('SELECT token FROM push_tokens', (err, results) => {
     if (err) {
-      console.error('Erreur de requête:', err);
+      console.error('Erreur lors de la récupération des tokens:', err);
       return;
     }
 
     const tokens = results.map(row => row.token);
 
+    if (tokens.length === 0) {
+      console.log('Aucun token trouvé.');
+      return;
+    }
+
+    // Préparation du message
     const message = {
       notification: {
-        title: 'Test CLI 🚀',
-        body: 'Ceci est un test envoyé via Node.js en ligne de commande.',
+        title: 'Titre de test',
+        body: 'Ceci est un message de test envoyé depuis la ligne de commande',
       },
       tokens: tokens,
     };
 
+    // Envoi du message
     admin.messaging().sendMulticast(message)
       .then((response) => {
-        console.log(`${response.successCount} message(s) envoyé(s) avec succès`);
-        console.log(`${response.failureCount} échec(s)`);
+        console.log(`${response.successCount} messages envoyés avec succès`);
+        if (response.failureCount > 0) {
+          console.log(`${response.failureCount} échecs :`);
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              console.log(`- ${tokens[idx]}: ${resp.error.message}`);
+            }
+          });
+        }
+        db.end();
       })
       .catch((error) => {
         console.error('Erreur lors de l’envoi:', error);
-      })
-      .finally(() => {
         db.end();
       });
   });
