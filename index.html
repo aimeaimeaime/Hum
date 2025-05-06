@@ -1,4 +1,4 @@
-
+<!-- 
 
 
 
@@ -78,25 +78,107 @@
     document.getElementById('subscribe').onclick = requestPermission;
   </script>
 </body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notifications Push Firebase</title>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-messaging-compat.js"></script>
+</head>
+<body>
+  <h1>🔔 Activate Biblical Notifications !🔔</h1>
+  <button id="subscribe">I Subscribe !</button>
+
+  <script>
+    // Configuration Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAb8gGl4qBZVtBqYS4--XkmeGPCZy8M25Y",
+      authDomain: "my-noti-16c94.firebaseapp.com",
+      projectId: "my-noti-16c94",
+      storageBucket: "my-noti-16c94.appspot.com",
+      messagingSenderId: "1062983320683",
+      appId: "1:1062983320683:web:da32270bb7eea4524a5d2e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+
+    // Enregistre le Service Worker
+    navigator.serviceWorker.register('firebase-messaging-sw.js')
+      .then((registration) => {
+        messaging.useServiceWorker(registration);
+        console.log('Service Worker enregistré');
+      })
+      .catch((err) => {
+        console.error('Erreur Service Worker :', err);
+      });
+
+    async function requestPermission() {
+      try {
+        let permission = Notification.permission;
+
+        if (permission === 'default') {
+          // Demander l'autorisation
+          permission = await Notification.requestPermission();
+        }
+
+        if (permission !== 'granted') {
+          alert('Permission refusée');
+          return;
+        }
+
+        const currentToken = await messaging.getToken({
+          vapidKey: 'BGOX1P_MfBltCSIYEoC3wPfaT9iuH1krTs9spba_1UkJSf4SjoABfYQGhL-_TS2504uN0L3dylK_dg-5_CgABMM'
+        });
+
+        if (currentToken) {
+          console.log('Token récupéré:', currentToken);
+
+          // Envoie du token au serveur
+          const response = await fetch('/register-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: currentToken }),
+          });
+
+          const result = await response.text();
+          alert(result);
+        } else {
+          console.warn('Aucun token généré');
+        }
+      } catch (err) {
+        console.error('Erreur lors de l\'inscription aux notifications:', err);
+        alert('Erreur lors de l\'enregistrement du token');
+      }
+    }
+
+    document.getElementById('subscribe').onclick = requestPermission;
+  </script>
+</body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
