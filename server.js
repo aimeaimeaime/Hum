@@ -77,12 +77,12 @@
 
 
 
-
 const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -107,14 +107,15 @@ db.connect(err => {
   console.log('Connecté à la base de données');
 });
 
-// Initialiser Firebase Admin avec la clé JSON depuis Render
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY.replace(/\\n/g, '\n'));
+// Charger la clé Firebase depuis le fichier JSON
+const serviceAccount = require(path.join(__dirname, 'firebase-service-account.json'));
 
+// Initialiser Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Route pour enregistrer un token
+// Routes (comme ton code existant)
 app.post('/subscribe', (req, res) => {
   const { token } = req.body;
 
@@ -132,7 +133,6 @@ app.post('/subscribe', (req, res) => {
   });
 });
 
-// Route pour envoyer une notification à tous les tokens
 app.post('/send-notification', (req, res) => {
   const { title, body } = req.body;
 
@@ -161,16 +161,6 @@ app.post('/send-notification', (req, res) => {
       console.error('Erreur lors de l’envoi de la notification:', error);
       res.status(500).send('Erreur d’envoi');
     }
-  });
-});
-
-// (Optionnel) Route pour lister les tokens
-app.get('/tokens', (req, res) => {
-  db.query('SELECT * FROM tokens', (err, results) => {
-    if (err) {
-      return res.status(500).send('Erreur');
-    }
-    res.json(results);
   });
 });
 
