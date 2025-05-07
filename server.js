@@ -188,10 +188,21 @@ const path = require('path');
 const app = express();
 
 // Configuration Firebase Admin SDK
-const serviceAccount = require('./serviceAccountKey.json');
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+  throw new Error("La variable d'environnement GOOGLE_APPLICATION_CREDENTIALS_JSON est manquante.");
+}
+
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+} catch (err) {
+  throw new Error("Impossible de parser GOOGLE_APPLICATION_CREDENTIALS_JSON : " + err.message);
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
+
 
 // Référence à Firestore
 const db = admin.firestore();
